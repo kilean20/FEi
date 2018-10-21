@@ -3,6 +3,8 @@
 *.mp4
 *.avi
 *.csv
+test_run
+*.state
 
 # Prerequisites
 *.d
