@@ -2,6 +2,7 @@
 *.png
 *.mp4
 *.avi
+*.csv
 
 # Prerequisites
 *.d
