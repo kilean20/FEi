@@ -23,7 +23,7 @@ program test_run
   type(Radiation), pointer :: Rad
   type(eBeam),pointer :: Beam
   
-  integer,parameter :: nFODO = 2
+  integer,parameter :: nFODO = 3
   type(arrElem) :: lattice(99*2*nFODO)
   type(undulator), pointer :: wigl
   type(propagator),pointer :: Pro
@@ -36,17 +36,17 @@ program test_run
   shotID = 1
   wID    = 10
   nBin   = 4
-  nLet   = 10000/(npRow*npCol*nBin)
-  nBucket= 5
+  nLet   = 2000/(npRow*npCol*nBin)
+  nBucket= 20
   dz_lu  = 5
   nPeriod= 165*2*nFODO + 20
-  nTail  = 50
+  nTail  = 30
   nStep  = nPeriod/dz_lu
   gamma0 = 2.4d9/physConst%Me
   nHarm  = 1
   harm_tab = [1]
-  dgrid  = 5d-4
-  MshNum = [51,51,2*nTail]
+  dgrid  = 4d-4
+  MshNum = [41,41,2*nTail]
   Rng(:2,1)=-dgrid
   Rng(:2,2)= dgrid
   Rng(3,1) =-twopi*(nTail-0.5)*nBucket
@@ -94,16 +94,10 @@ program test_run
   Beam => eBeam(pGrd,cDom,nLet,nBin,ks,ku,currPk,&
                 distID,Mean,Std,Alpha,Emit,shotID=shotID,iHamsl=2)
 
-!! check inital pData
-  call Beam%get_sample(pData_sample,nSample)
-  if(pGrd%myRank==0) then
-    iUnit = fileIO%get_free_unit()
-    open(unit=iUnit,file='pDataSample.txt')
-    do i=1,nSample
-      write(iUnit,*) pData_sample(i,:)
-    enddo
-  close(iUnit)
-  endif
+!! check mesh data
+  print*, 'dx,dy,dt',Rad%dx,Rad%dy,Rad%dt
+  print*, 'nMsh',cDom%MshNum
+  print*, 'Rng', cDom%Rng
  
 
 !! initilaize lattice (FODO cell)

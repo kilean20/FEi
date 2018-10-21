@@ -69,8 +69,8 @@ function write_ptcl_csv_constructor(fID)
   write_ptcl_csv_constructor%L  = 0.0
   write_ptcl_csv_constructor%nStep = 1
   write_ptcl_csv_constructor%dz = 0.0
-  write_ptcl_csv_constructor%flagBeam = .false.
-  write_ptcl_csv_constructor%flagRad = .true.
+  write_ptcl_csv_constructor%flagBeam = .true.
+  write_ptcl_csv_constructor%flagRad = .false.
   write_ptcl_csv_constructor%fileID = fID
 end function write_ptcl_csv_constructor
 
@@ -81,7 +81,7 @@ function write_csv_constructor(fID)
   write_csv_constructor%L  = 0.0
   write_csv_constructor%nStep = 1
   write_csv_constructor%dz = 0.0
-  write_csv_constructor%flagBeam = .false.
+  write_csv_constructor%flagBeam = .true.
   write_csv_constructor%flagRad = .true.
   write_csv_constructor%fileID = fID
 end function write_csv_constructor
@@ -97,10 +97,10 @@ subroutine write_field_csv_Func(self,Rad,dz)
   integer :: i,j,k,iH,ip,nx,ny,nt,nH,nMax,myIndex
   integer :: myCol,myRow,root,ierr,iUnit
   integer,dimension(0:Rad%Pgrd%np-1) :: nyLocList,ntLocList
-  real*8 :: x,y,theta,amp,phs,eps
+  real*8 :: x,y,ct,amp,phs,eps
   complex(8), allocatable :: RecvBuff(:)
-  character :: cfID
-  
+  character(7) :: cfID
+  print*, 'calling write_field_csv_Func',self%fileID
   root = Rad%pGrd%np-1
   myCol = Rad%pGrd%myCol
   myRow = Rad%pGrd%myRow
@@ -113,9 +113,9 @@ subroutine write_field_csv_Func(self,Rad,dz)
 
   if(Rad%pGrd%myRank==root) then
     iUnit = fileIO%get_free_unit()
-    write(cfID,'(I1)') self%fileID
-    open(iUnit,file='field.'//cfID//'.csv',action='write')
-    write(iUnit,'("x, y, theta")',advance="no") 
+    write(cfID,'(I0)') self%fileID
+    open(iUnit,file='field.'//trim(adjustl(cfID))//'.csv',action='write')
+    write(iUnit,'("x, y, ct")',advance="no") 
     do iH=1,nH-1
       write(iUnit,'(", amplitude",I1,", phase",I1,", log_amplitude",I1)',advance="no")&
            Rad%harm_tab(iH),Rad%harm_tab(iH),Rad%harm_tab(iH)
@@ -128,8 +128,9 @@ subroutine write_field_csv_Func(self,Rad,dz)
       do j=1,Rad%ny2
         y = Rad%cDom%RngLoc(2,1) + (j-1)*Rad%dy
         do k=1,Rad%ntT
-          theta = Rad%cDom%RngLoc(3,1) + (k-1)*Rad%dt
-          write(iUnit,'(3(ES14.7,","))',advance="no") x,y,theta
+          ct = Rad%cDom%RngLoc(3,1) + (k-1)*Rad%dt
+          ct = ct/Rad%ks
+          write(iUnit,'(3(ES14.7,","))',advance="no") x,y,ct
           do iH=1,nH-1
             amp = abs(Rad%Fld(i,j,k,iH))
             phs = atan2(aimag(Rad%Fld(i,j,k,iH)),real(Rad%Fld(i,j,k,iH)))
@@ -153,8 +154,9 @@ subroutine write_field_csv_Func(self,Rad,dz)
         do j=1,ny
           y = Rad%cDom%Rng(2,1) +(Rad%cDom%yMshTab(myCol)+j-1)*Rad%dy
           do k=1,nt
-            theta = Rad%cDom%Rng(3,1) +(Rad%cDom%tMshTab(myRow)+k-1)*Rad%dt
-            write(iUnit,'(3(ES14.7,","))',advance="no") x,y,theta
+            ct = Rad%cDom%Rng(3,1) +(Rad%cDom%tMshTab(myRow)+k-1)*Rad%dt
+            ct = ct/Rad%ks
+            write(iUnit,'(3(ES14.7,","))',advance="no") x,y,ct
             do iH=1,nH-1
               myIndex = i+(j-1)*nx+(k-1)*nx*ny+(iH-1)*nx*ny*nt
               amp = abs(RecvBuff(myIndex))
@@ -187,7 +189,7 @@ subroutine write_ptcl_csv_Func(self,beam,dz)
   integer :: i,nMax,ip,root,ierr,iUnit
   integer,dimension(0:beam%Pgrd%np-1) :: nptList
   real*8, allocatable :: RecvBuff(:)
-  character :: cfID
+  character(7) :: cfID
   
   root = beam%pGrd%np-1
   call MPI_GATHER(beam%npt,1,MPI_INTEGER,nptList,1,&
@@ -195,12 +197,14 @@ subroutine write_ptcl_csv_Func(self,beam,dz)
 
   if(beam%pGrd%myRank==root) then
     iUnit = fileIO%get_free_unit()
-    write(cfID,'(I1)') self%fileID
-    open(iUnit,file='ptcl.'//cfID//'.csv',action='write')
-    write(iUnit,'("x, y, theta, charge")') 
+    write(cfID,'(I0)') self%fileID
+    open(iUnit,file='ptcl.'//trim(adjustl(cfID))//'.csv',action='write')
+    write(iUnit,'("x, y, ct, charge")') 
 
     do i=1,beam%npt
-      write(iUnit,'(3(ES14.7,","),ES14.7)') beam%pData(i,[x_,y_,t_,q_])
+      write(iUnit,'(3(ES14.7,","),ES14.7)') beam%pData(i,[x_,y_]),&
+                                            beam%pData(i,t_)/beam%ks,&
+                                            beam%pData(i,q_)
     enddo
     nMax = maxval(nptList)
     allocate(RecvBuff(nMax*4))
@@ -208,7 +212,9 @@ subroutine write_ptcl_csv_Func(self,beam,dz)
       call MPI_RECV(RecvBuff,nptList(ip)*4,MPI_DOUBLE_PRECISION,&
                     ip,1,beam%pGrd%comm_2d,MPI_STATUS_IGNORE,ierr)
       do i=1,beam%npt
-        write(iUnit,'(3(ES14.7,","),ES14.7)') RecvBuff((i-1)*4+1:i*4)
+        write(iUnit,'(3(ES14.7,","),ES14.7)') RecvBuff((i-1)*4+1:(i-1)*4+1), &
+                                              RecvBuff((i-1)*4+3)/beam%ks,&
+                                              RecvBuff(i*4)
       enddo
     enddo
   else
@@ -230,8 +236,8 @@ subroutine write_csv_Func(self,beam,rad,dz)
   
   ptclCSV => write_ptcl_csv(self%fileID)
   fieldCSV=> write_field_csv(self%fileID)
-  call ptclCSV%act(Beam,Rad,dz)
-  call ptclCSV%act(Beam,Rad,dz)
+  call fieldCSV%act(Beam,Rad,dz)
+  call ptclCSV %act(Beam,Rad,dz)
   
 end subroutine write_csv_Func
   
