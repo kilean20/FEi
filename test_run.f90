@@ -4,14 +4,14 @@ program test_run
   implicit none
   include 'mpif.h'
   integer :: i, j, n, m, wID, shotID
-  integer :: npRow, npCol, distID(6), nLet, nBin, nBucket, dz_lu
+  integer :: npRow, npCol, distID(6), nLet, nBin, nBucket
   integer :: nPeriod, nStep, nTail
   integer :: nHarm, harm_tab(1)
   integer :: MshNum(3), distID2D(2),iUnit
   real*8  :: gamma0, K, kx, ky, ks, ku, ls, lu
   real*8  :: sigmaX,sigmaY,sigmaG,alphax,alphay,rangeT,sigmaZ,sigmaT
   real*8  :: currPk, Std2D(2),Std(3), alpha(3), Emit(3)
-  real*8  :: dgrid, dz,z, meanx, meany, stdx, stdy
+  real*8  :: dgrid, z, meanx, meany, stdx, stdy
   real*8,dimension(6) :: Mean
   real*8,dimension(3,2) :: Rng
   real*8,allocatable :: pwr(:,:)
@@ -24,7 +24,7 @@ program test_run
   type(eBeam),pointer :: Beam
   
   integer,parameter :: nFODO = 3
-  type(arrElem) :: lattice(99*2*nFODO)
+  type(arrElem) :: lattice(99*2*5*nFODO)
   type(undulator), pointer :: wigl
   type(propagator),pointer :: Pro
   type(drift),     pointer :: d0,d1
@@ -38,10 +38,8 @@ program test_run
   nBin   = 4
   nLet   = 2000/(npRow*npCol*nBin)
   nBucket= 20
-  dz_lu  = 5
   nPeriod= 165*2*nFODO + 20
   nTail  = 30
-  nStep  = nPeriod/dz_lu
   gamma0 = 2.4d9/physConst%Me
   nHarm  = 1
   harm_tab = [1]
@@ -60,7 +58,6 @@ program test_run
   K  = sqrt(4d0*gamma0**2*ku/ks-2d0)
   kx = 0d0
   ky = ku
-  dz = nPeriod*lu/dble(nStep) 
 
 
 !! electron beam parameters
@@ -101,30 +98,32 @@ program test_run
  
 
 !! initilaize lattice (FODO cell)
-  Wigl => undulator(5,1,K,kx,ky,ku,harm_tab,nHarm) ! *33
-  QF => quad(L=0.1d0,nStep=1,B1= 7.86435d0)        ! *2
-  QD => quad(L=0.1d0,nStep=1,B1=-7.19682d0)        ! *2
-  D0 => drift(L=0.1d0,nStep=1)
-  D1 => drift(L=0.1d0,nStep=1)                     ! *8
-  Pro=> propagator(L = 0.1d0, nStep = 1)           ! *11
+  Wigl => undulator(1,1,K,kx,ky,ku,harm_tab,nHarm) ! *33
+  QF => quad(L=0.02d0,nStep=1,B1= 7.86435d0)        ! *2
+  QD => quad(L=0.02d0,nStep=1,B1=-7.19682d0)        ! *2
+  D0 => drift(L=0.02d0,nStep=1)
+  D1 => drift(L=0.02d0,nStep=1)                     ! *8
+  Pro=> propagator(L = 0.02d0, nStep = 1)           ! *11
   n=1
   m=1
   do i=1,nFODO
-    do j=1,33
+    do j=1,165
       lattice(n)%op => Wigl
       n=n+1
       lattice(n)%op => write_csv(m)
       n=n+1
       m=m+1
     enddo
-    lattice(n)%op => D0
-    n=n+1
-    lattice(n)%op => Pro
-    n=n+1
-    lattice(n)%op => write_csv(m)
-    n=n+1
-    m=m+1
-    do j=1,2
+    do j=1,5
+      lattice(n)%op => D0
+      n=n+1
+      lattice(n)%op => Pro
+      n=n+1
+      lattice(n)%op => write_csv(m)
+      n=n+1
+      m=m+1
+    enddo
+    do j=1,10
       lattice(n)%op => QD
       n=n+1
       lattice(n)%op => Pro
@@ -133,7 +132,7 @@ program test_run
       n=n+1
       m=m+1
     enddo
-    do j=1,8
+    do j=1,40
       lattice(n)%op => D1
       n=n+1
       lattice(n)%op => Pro
@@ -142,21 +141,23 @@ program test_run
       n=n+1
       m=m+1
     enddo
-    do j=1,33
+    do j=1,165
       lattice(n)%op => Wigl
       n=n+1
       lattice(n)%op => write_csv(m)
       n=n+1
       m=m+1
     enddo
-    lattice(n)%op => D0
-    n=n+1
-    lattice(n)%op => Pro
-    n=n+1
-    lattice(n)%op => write_csv(m)
-    n=n+1
-    m=m+1
-    do j=1,2
+    do j=1,5
+      lattice(n)%op => D0
+      n=n+1
+      lattice(n)%op => Pro
+      n=n+1
+      lattice(n)%op => write_csv(m)
+      n=n+1
+      m=m+1
+    enddo
+    do j=1,10
       lattice(n)%op => QF
       n=n+1
       lattice(n)%op => Pro
@@ -165,7 +166,7 @@ program test_run
       n=n+1
       m=m+1
     enddo
-    do j=1,8
+    do j=1,40
       lattice(n)%op => D1
       n=n+1
       lattice(n)%op => Pro
@@ -176,14 +177,13 @@ program test_run
     enddo
   enddo
 
-
-!! prepare pwr output
-  allocate(pwr(Rad%cDom%MshNum(3),Rad%nHarm))
-  z = 0d0
-  do i=1,99*2*nFODO
-    call lattice(i)%op%act(Beam,Rad,dz)
-    pwr(:,:) = Rad%get_pwr()
-    if(pGrd%myRank==0) print*, sum(pwr(:,1))
+! prepare pwr output
+  !allocate(pwr(Rad%cDom%MshNum(3),Rad%nHarm))
+  
+  do i=1,99*2*5*nFODO-130
+    call lattice(i)%op%act(Beam,Rad)
+    !pwr(:,:) = Rad%get_pwr()
+    !if(pGrd%myRank==0) print*, sum(pwr(:,1))
   enddo
 
   call MPI_finalize(i)

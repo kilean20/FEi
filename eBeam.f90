@@ -14,13 +14,14 @@ module eBeamModule
     integer :: npt,nBin
     real*8  :: ks,ku,z
     real*8, allocatable :: pData(:,:)
+    integer, allocatable :: beamletID(:)
     type(pGrid2D), pointer :: pGrd => null()
     type(CompDom), pointer :: cDom => null()
     contains
       procedure :: correct_centroid => correct_centroid_5D, &
                                        correct_centroid_slices_5D
       procedure :: destruct => eBeam_destructor
-      procedure :: populate_beamlet, Load_Twiss, set=>eBeam_set
+      procedure :: assign_beamletID, populate_beamlet, Load_Twiss, set=>eBeam_set
       procedure :: ReOrder, yReOrder, tReOrder, tReorder_middle, add_shotnoise
       procedure :: yLoadBalance, tLoadBalance
       procedure :: release_beamlet
@@ -68,21 +69,23 @@ function eBeam_constructor(pGrd,cDom,nLet,nBin,ks,ku,z) result(self)
   self%npt = nLet
   self%nBin= nBin
   allocate(self%pData(nLet,7))
+  allocate(self%beamletID(nLet))
   
 end function eBeam_constructor
 
-function eBeam_constructor_from_pData(pGrd,cDom,pData,npt,nBin,ks,ku,z) result(self)
+function eBeam_constructor_from_pData(pGrd,cDom,pData,beamletID,npt,nBin,ks,ku,z) result(self)
   class(eBeam), pointer :: self
   type(pGrid2D),pointer :: pGrd
   type(CompDom),pointer :: cDom
   integer,intent(in) :: npt,nBin
   real*8, intent(in) :: ks,ku,pData(npt,7)
+  integer,optional,intent(in) :: beamletID(npt/nBin)
   real*8, intent(in), optional :: z
   
   allocate(self)
   self%pGrd => pGrd
   self%cDom => cDom
-  call self%set(pData,npt,nBin,ks,ku,z)
+  call self%set(pData,beamletID,npt,nBin,ks,ku,z)
 end function eBeam_constructor_from_pData
 
 function eBeam_constructor_distID(pGrd,cDom,nLet,nBin,ks,ku,Ip,&
@@ -223,16 +226,22 @@ real*8 function Get_Q(Ip,std,ks,distID)
   end select
 end function Get_Q
 
-subroutine eBeam_set(self,pData,npt,nBin,ks,ku,z)
+subroutine eBeam_set(self,pData,beamletID,npt,nBin,ks,ku,z)
   class(eBeam) :: self
   integer,intent(in) :: npt,nBin
   real*8, intent(in) :: pData(npt,7), ks, ku
+  integer,intent(in), optional :: beamletID(npt)
   real*8, intent(in), optional :: z
 
   if(present(z)) then
     self%z = z
   else
     self%z = 0
+  endif
+  if(present(beamletID)) then
+    self%beamletID = beamletID
+  else
+    call self%assign_beamletID()
   endif
   self%ks  = ks
   self%ku  = ku
@@ -242,6 +251,11 @@ subroutine eBeam_set(self,pData,npt,nBin,ks,ku,z)
   allocate(self%pData(npt,7))
   self%pData = pData
 end subroutine
+
+subroutine assign_beamletID(self)
+  implicit none
+  class(eBeam) :: self
+end subroutine 
 
 subroutine populate_beamlet(self)
 !=================================================================================================

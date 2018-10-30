@@ -100,7 +100,7 @@ subroutine write_field_csv_Func(self,Rad,dz)
   real*8 :: x,y,ct,amp,phs,eps
   complex(8), allocatable :: RecvBuff(:)
   character(7) :: cfID
-  print*, 'calling write_field_csv_Func',self%fileID
+  
   root = Rad%pGrd%np-1
   myCol = Rad%pGrd%myCol
   myRow = Rad%pGrd%myRow
@@ -171,6 +171,7 @@ subroutine write_field_csv_Func(self,Rad,dz)
         enddo
       enddo
     enddo
+    close(iUnit)
   else
     call MPI_SEND(Rad%Fld(:,1:Rad%ny2,1:Rad%ntT,:),&
                   nx*Rad%ny2*Rad%ntT*nH,MPI_DOUBLE_COMPLEX,&
@@ -217,6 +218,7 @@ subroutine write_ptcl_csv_Func(self,beam,dz)
                                               RecvBuff(i*4)
       enddo
     enddo
+    close(iUnit)
   else
     call MPI_SEND(beam%pData(:,[x_,y_,t_,q_]),beam%npt*4,&
                   MPI_DOUBLE_PRECISION,root,1,beam%pGrd%comm_2d,ierr)
