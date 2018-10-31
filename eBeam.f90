@@ -73,7 +73,7 @@ function eBeam_constructor(pGrd,cDom,nLet,nBin,ks,ku,z) result(self)
   
 end function eBeam_constructor
 
-function eBeam_constructor_from_pData(pGrd,cDom,pData,beamletID,npt,nBin,ks,ku,z) result(self)
+function eBeam_constructor_from_pData(pGrd,cDom,pData,npt,nBin,ks,ku,beamletID,z) result(self)
   class(eBeam), pointer :: self
   type(pGrid2D),pointer :: pGrd
   type(CompDom),pointer :: cDom
