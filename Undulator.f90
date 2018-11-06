@@ -1120,8 +1120,6 @@ subroutine dummy4comment()
       ! ! call undulator_xyMap(self,Beam,0.25d0*self%dz)
   ! ! endif
 ! end subroutine undulator_track_steady_Heff1
-end subroutine dummy4comment
-
 
 !MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 !MMMMMMMMMMMMMMMMMMMMMMMMMM   get_M   MMMMMMMMMMMMMMMMMMMMMMMMMMM
@@ -1158,7 +1156,7 @@ end subroutine dummy4comment
   ! M(3:4,3:4) = My
   ! return
 ! end subroutine undulator_get_M
-
+end subroutine dummy4comment
 
 !MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 !MMMMM dummy deffered subroutines MMMMM
@@ -1176,4 +1174,5 @@ subroutine dummy_beam(self,beam,dz)
   type(eBeam),intent(inout)    :: beam
   real*8, optional,intent(in)  :: dz
 end subroutine dummy_beam
+
 end module undulatorModule
