@@ -525,7 +525,7 @@ subroutine undulator_tMap1(self,Beam,Rad,fldTmp,dz)
   type(eBeam),     intent(inout) :: Beam
   complex(8),allocatable, intent(inout) :: fldTmp(:,:)
   complex(8),dimension(Beam%npt/Beam%nBin,self%nHarm) :: fld,fldz
-  
+
   if(Beam%npt==0) return
   call Beam%scatter(Rad,fld)
   fldz = (fld-fldTmp)/dz

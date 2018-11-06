@@ -1469,7 +1469,6 @@ subroutine cal_monopole0(self,W0,h,Kprm,I0,IC,dV)!,qWeight)
   real*8,     intent(in) :: Kprm(3),I0(1),IC(1),dV
   complex(8), intent(out):: W0(self%npt)
 !  real*8,optional,intent(in) :: qWeight
-    
   associate(npt => self%npt, &
             K    =>Kprm(1),     ku  =>self%ku,    ks=>self%ks,&
             px   =>self%pData(:,px_),                         &
@@ -1506,7 +1505,6 @@ subroutine cal_monopole1(self,W0,h,Kprm,I0,IC,dV)!,qWeight)
 !  real*8,optional,intent(in) :: qWeight
   real*8     :: gR
   complex(8) :: IIC
-  
   associate(npt  =>self%npt,&
             ku   =>self%ku,           ks   =>self%ks,         &
             K    =>Kprm(1),           kx2  =>Kprm(2),           ky2  =>Kprm(3),&
